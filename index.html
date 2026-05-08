@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Show de preguntas de Diego de Show de preguntas de Mettaton</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --primary: #38bdf8;
+            --secondary: #818cf8;
+            --text: #f8fafc;
+            --correct: #22c55e;
+            --incorrect: #ef4444;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #quiz-container {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            max-width: 700px;
+            width: 90%;
+            transition: all 0.3s ease;
+        }
+
+        h1 { color: var(--primary); font-size: 1.5rem; text-align: center; }
+        .progress-bar { height: 8px; background: #334155; border-radius: 4px; margin-bottom: 2rem; overflow: hidden; }
+        #progress { height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); width: 0%; transition: width 0.3s; }
+
+        .question { font-size: 1.2rem; font-weight: 600; margin-bottom: 1.5rem; }
+        .options { display: grid; gap: 0.8rem; }
+        .option {
+            background: #334155;
+            padding: 1rem;
+            border: 2px solid transparent;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .option:hover { border-color: var(--primary); background: #475569; }
+        .option.correct { border-color: var(--correct); background: #14532d; }
+        .option.incorrect { border-color: var(--incorrect); background: #7f1d1d; }
+
+        #results { text-align: center; display: none; }
+        .code-snippet { font-family: 'Fira Code', monospace; background: #000; padding: 0.5rem; border-radius: 4px; font-size: 0.9rem; }
+        button {
+            margin-top: 2rem;
+            background: var(--primary);
+            color: var(--bg);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+                    .review-item {
+                margin-bottom: 1.5rem;
+                padding-bottom: 1rem;
+                border-bottom: 1px solid #334155;
+            }
+            .review-q {
+                font-weight: bold;
+                display: block;
+                margin-bottom: 0.5rem;
+            }
+            .review-a {
+                font-size: 0.9rem;
+                display: block;
+            }
+            .txt-correct { color: var(--correct); }
+            .txt-incorrect { color: var(--incorrect); }
+            .txt-label { opacity: 0.7; margin-right: 5px; }
+
+            /* Scrollbar personalizado para el área de revisión */
+            #review-list::-webkit-scrollbar { width: 8px; }
+            #review-list::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="start-screen" style="text-align: center; padding: 2rem;">
+    <h1 style="color: var(--primary); font-size: 3rem;">Questionario de Show de preguntas de Mettaton</h1>
+    <p>Pon a prueba tus conocimientos sobre el sistema.</p>
+    <button id="start-btn" style="font-size: 1.5rem; padding: 1rem 3rem;">Reproducir musica</button>
+</div>
+
+<div id="quiz-container">
+    <div id="quiz-content">
+        <h1 id="category-title">Show de preguntas de Diego de Show de preguntas de Mettaton</h1>
+        <div class="progress-bar"><div id="progress"></div></div>
+        <div id="question-area">
+            <div class="question" id="question-text">Cargando preguntas...</div>
+            <div class="options" id="options-container"></div>
+        </div>
+    </div>
+
+    <div id="results">
+        <h2>Resultados Finales</h2>
+        <p id="score-text"></p>
+        <div id="feedback"></div>
+        <button onclick="location.reload()">Reintentar</button>
+        <div id="review-list" style="text-align: left; margin-top: 2rem; max-height: 400px; overflow-y: auto; padding: 1rem; background: #0f172a; border-radius: 8px;"></div>
+        <button onclick="restartQuiz()">Volver a empezar</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        { q: "¿Cuál es el punto de entrada principal del juego?", a: ["Mettaton5.py", "Sistemas.py", "Conexiones.py", "Main.exe"], c: 0 },
+        { q: "¿Qué librería se encarga de la interfaz gráfica de consola?", a: ["Questionary", "Pygame", "Matplotlib", "Openpyxl"], c: 0 },
+        { q: "¿Cómo maneja Conexiones.py la limitación de 5s de la API OTDB?", a: ["Con un sleep de 6 segundos", "Usando múltiples proxies", "Ignorando el error", "Con un bucle recursivo"], c: 0 },
+        { q: "¿Qué función mezcla las respuestas correctas e incorrectas?", a: ["GenerarOpciones", "EncontrarIndice", "Shuffler", "MezclarData"], c: 0 },
+        { q: "¿Qué librería se utiliza para generar archivos Excel?", a: ["openpyxl", "pandas", "csv", "xlsxwriter"], c: 0 },
+        { q: "¿Cuál es el código de error de la API para 'Token Expirado'?", a: ["4", "0", "1", "5"], c: 0 },
+        { q: "¿Qué módulo se encarga del cálculo de puntos?", a: ["Sistemas.py", "Logs.py", "Registros.py", "Conexiones.py"], c: 0 },
+        { q: "¿En qué archivo se definen los estilos de fuente de las gráficas?", a: ["Graficas.py", "Mettaton5.py", "Sistemas.py", "Config.py"], c: 0 },
+        { q: "¿Qué método de pygame se usa para cargar música de fondo?", a: ["pygame.mixer.music.load", "pygame.sound.init", "pygame.play", "pygame.mixer.Sound"], c: 0 },
+        { q: "¿Cómo se llama el archivo de registro de errores?", a: ["Log_errores_mettaton5.txt", "error.log", "debug.txt", "Logs_Partidas.xlsx"], c: 0 },
+        { q: "¿Qué sucede si el puntaje es 0 y se falla una pregunta?", a: ["El puntaje se mantiene en 0", "Baja a -1", "Se reinicia la partida", "Lanza una excepción"], c: 0 },
+        { q: "¿Qué tipo de dato devuelve la función Menu de Sistemas.py?", a: ["Diccionario", "Lista", "String", "Booleano"], c: 0 },
+        { q: "¿Qué parámetro de 'Enlace' permite filtrar por dificultad?", a: ["d", "c", "n", "t"], c: 0 },
+        { q: "¿Qué color hexadecimal usa el Excel para partidas ganadas?", a: ["90EE90 (Verde claro)", "FF9999 (Rojo claro)", "B0E0E6 (Azul)", "FFFFFF"], c: 0 },
+        { q: "¿Qué librería permite detectar la pulsación de teclas?", a: ["keyboard", "requests", "os", "datetime"], c: 0 },
+        { q: "¿Cuál es el propósito de la función Bitacora en Logs.py?", a: ["Guardar estadísticas de la sesión", "Registrar errores fatales", "Limpiar la consola", "Reproducir música"], c: 0 },
+        { q: "¿Qué clase se importa de googletrans para la traducción?", a: ["Translator", "GoogleTranslate", "Parser", "TranslateAPI"], c: 0 },
+        { q: "¿Qué función se usa para dibujar la gráfica lineal?", a: ["plt.plot", "plt.bar", "plt.pie", "plt.scatter"], c: 0 },
+        { q: "¿Qué se guarda en el archivo Instrucciones.txt?", a: ["Las reglas del show de Mettaton", "Los logs de errores", "La URL de la API", "El puntaje máximo"], c: 0 },
+        { q: "¿Qué indica un código de respuesta '-1' en Conexiones.py?", a: ["Error de ejecución (Except)", "Éxito total", "Sin resultados", "Demasiados intentos"], c: 0 },
+        { q: "¿En qué columna de Excel se guardan los Puntos Acumulados?", a: ["Columna 10 (J)", "Columna 1 (A)", "Columna 5 (E)", "Columna 11 (K)"], c: 0 },
+        { q: "¿Qué hace la función EncontrarIndice?", a: ["Ubica la respuesta correcta en la lista", "Busca errores en el log", "Cuenta el número de preguntas", "Genera el ID de sesión"], c: 0 },
+        { q: "¿Qué tipo de gráfica se usa para las categorías?", a: ["Diagrama de Dispersión", "Gráfica de Barras", "Gráfica Lineal", "Diagrama de Pastel"], c: 0 },
+        { q: "¿Qué sucede si el usuario selecciona 'Cualquier categoría'?", a: ["Se omite el parámetro en la URL", "Se elige una al azar", "El programa falla", "La API devuelve error 2"], c: 0 },
+        { q: "¿Qué propiedad de styles en openpyxl hace el texto negrita?", a: ["Font(bold=True)", "Font(weight='bold')", "Bold()", "Cell.style('bold')"], c: 0 },
+        { q: "¿Qué librería maneja los arreglos de datos en Graficas.py?", a: ["numpy", "math", "requests", "json"], c: 0 },
+        { q: "¿Cuál es el formato de fecha usado en los logs?", a: ["%Y-%m-%d %H:%M:%S", "%d/%m/%Y", "%H:%M", "%Y%m%d"], c: 0 },
+        { q: "¿Qué función detiene la música de introducción?", a: ["intro.stop()", "pygame.quit()", "music.end()", "intro.play(0)"], c: 0 },
+        { q: "¿Qué modo de InfoConexion solicita el código de respuesta?", a: ["Modo 0", "Modo 1", "Modo API", "Modo Status"], c: 0 },
+        { q: "¿Cómo se llama la hoja de Excel creada?", a: ["Partidas + DD.MM.YYYY", "Reporte_General", "Sheet1", "Mettaton_DB"], c: 0 },
+        { q: "¿Qué parámetro recibe GenerarListaGraficas?", a: ["catg, dif, tip", "n, c, d, t", "datos, pase", "info_excel"], c: 0 },
+        { q: "¿Qué librería procesa el formato JSON de la API?", a: ["json", "requests", "xml", "pickle"], c: 0 },
+        { q: "¿Cuántas opciones se generan por pregunta?", a: ["4", "2", "3", "5"], c: 0 },
+        { q: "¿Qué función se encarga de crear la URL dinámica?", a: ["Enlace", "Conectar", "GetURL", "BuildAPI"], c: 0 },
+        { q: "¿Para qué se usa math en Graficas.py?", a: ["Operaciones matemáticas adicionales", "Dibujar círculos", "Traducir textos", "Manejar tiempos"], c: 0 },
+        { q: "¿Qué color usa el Excel para marcar respuestas incorrectas?", a: ["FF9999", "90EE90", "B0E0E6", "FFDAB9"], c: 0 },
+        { q: "¿Qué hace 'intro.play(-1)'?", a: ["Reproduce en bucle infinito", "Reproduce una vez", "Detiene el audio", "Baja el volumen"], c: 0 },
+        { q: "¿Qué sucede si no existe Partidas.xlsx?", a: ["Se crea con encabezados negritas", "El programa se cierra", "Se usa una lista temporal", "Lanza FileNotFoundError"], c: 0 },
+        { q: "¿Qué caracteres se limpian en la función Traduccion?", a: ["&quot; y &#039;", "<br> y <b>", "? y !", "Emojis"], c: 0 },
+        { q: "¿Cuál es la función del archivo Registros.py?", a: ["Gestión de persistencia en Excel", "Lógica del menú", "Conexión a la red", "Dibujo de gráficas"], c: 0 },
+        { q: "¿Qué atributo diferencia una gráfica de barras de dificultad vs tipo?", a: ["'seleccion' (1 o 2)", "'tipo_grafica'", "'color'", "'axis_y'"], c: 0 },
+        { q: "¿Qué hace questionary.confirm?", a: ["Muestra un prompt de Sí/No", "Valida el correo", "Cierra la aplicación", "Guarda los datos"], c: 0 },
+        { q: "¿En qué idioma se muestran los logs de error?", a: ["Español con detalles técnicos", "Solo Inglés", "Binario", "Markdown"], c: 0 },
+        { q: "¿Qué variable global guarda el Workbook en Registros.py?", a: ["archivo_partidas", "wb", "excel_file", "partida_actual"], c: 0 },
+        { q: "¿Qué sucede si la conexión API falla inicialmente?", a: ["Verifica el código y pregunta si reintentar", "Se cierra el juego", "Usa preguntas locales", "Entra en modo offline"], c: 0 },
+        { q: "¿Cuál es el título de la gráfica de puntos?", a: ["Grafica de recorrido de puntos", "Puntos por partida", "Estadísticas", "Mettaton Score"], c: 0 },
+        { q: "¿Qué hace Logs.Salida()?", a: ["Termina la ejecución limpiamente", "Borra los logs", "Reinicia el PC", "Imprime el crédito final"], c: 0 },
+        { q: "¿Qué método se usa para añadir una fila al Excel?", a: ["hoja.append()", "hoja.add_row()", "hoja.write()", "hoja.insert()"], c: 0 },
+        { q: "¿Qué librería de Python maneja el tiempo?", a: ["time", "datetime", "chronos", "calendar"], c: 0 },
+        { q: "¿Qué música suena si el usuario acierta?", a: ["victory.wav", "wrong.wav", "Showtime.mp3", "Metal_Crusher.mp3"], c: 0 },
+        { q: "¿Por qué se utiliza 'global archivo_partidas' en Registros.py?", a: ["Para mantener la referencia del Workbook entre llamadas", "Para que sea accesible desde Mettaton5.py", "Para ahorrar memoria RAM", "Es una mala práctica y no debería usarse"], c: 0 },
+        { q: "¿Qué patrón de diseño se asemeja al uso de módulos separados para lógica, red y UI?", a: ["Modelo-Vista-Controlador (MVC)", "Singleton", "Factory", "Observer"], c: 0 },
+        { q: "¿Qué librería externa es responsable de la interactividad tipo CLI?", a: ["questionary", "os", "sys", "json"], c: 0 },
+        { q: "¿Cuál es la función principal de Sistemas.py?", a: ["Orquestar la lógica de menús y procesamiento de opciones", "Realizar peticiones HTTP", "Dibujar gráficas en pantalla", "Traducir textos"], c: 0 },
+        { q: "¿Qué ventaja tiene usar 'match-case' en Sistemas.Menu()?", a: ["Mayor legibilidad que múltiples if-elif", "Es más rápido que un diccionario", "Permite multihilos", "Es obligatorio en Python 3.8"], c: 0 },
+
+        // --- Manejo de Datos y Persistencia ---
+        { q: "¿Qué método de openpyxl se usa para abrir un archivo existente?", a: ["load_workbook()", "Workbook()", "open_excel()", "read_file()"], c: 0 },
+        { q: "¿Cómo se identifica una hoja de cálculo específica en Registros.py?", a: ["Por un string que combina 'Partidas' y la fecha", "Por el índice 0", "Por el nombre 'MainSheet'", "Por el ID del usuario"], c: 0 },
+        { q: "¿Qué técnica se usa en Registros.py para evitar sobreescribir datos?", a: ["Un bucle while que busca la primera celda vacía", "El método hoja.append()", "Sobreescritura total del archivo", "No se evita, se sobreescribe siempre"], c: 0 },
+        { q: "¿Cuál es el propósito de 'hoja.iter_cols()' en la validación de Registros?", a: ["Recorrer verticalmente para encontrar IDs", "Formatear las celdas", "Cambiar el color del texto", "Exportar a CSV"], c: 0 },
+        { q: "¿Qué sucede en Registros.py si 'Partidas.xlsx' no existe?", a: ["Se crea un nuevo Workbook con encabezados", "El programa lanza un error fatal", "Se pide al usuario crear el archivo", "Se ignoran los registros"], c: 0 },
+
+        // --- Redes y API ---
+        { q: "¿Qué parámetro de la API define si las preguntas son de opción múltiple?", a: ["type", "category", "difficulty", "amount"], c: 0 },
+        { q: "¿Cuál es el riesgo de no usar un Token en la API OTDB?", a: ["Recibir preguntas repetidas frecuentemente", "No poder conectar a la API", "La API cobrará por la petición", "La traducción fallará"], c: 0 },
+        { q: "¿Qué hace 'requests.get(url).json()'?", a: ["Realiza la petición y deserializa el cuerpo a un dict", "Descarga un archivo .json al disco", "Convierte la URL a formato JSON", "Solo verifica si la URL es válida"], c: 0 },
+        { q: "¿En qué módulo se gestiona el tiempo de espera para evitar el Rate Limit de la API?", a: ["Conexiones.py", "Mettaton5.py", "Sistemas.py", "Logs.py"], c: 0 },
+        { q: "¿Qué código de respuesta entrega la API si no hay suficientes preguntas para tu filtro?", a: ["1", "0", "2", "3"], c: 2 },
+
+        // --- Visualización (Matplotlib) ---
+        { q: "¿Qué estructura de datos de NumPy se usa para las gráficas?", a: ["np.array()", "np.matrix()", "np.list()", "np.dataframe()"], c: 0 },
+        { q: "¿Para qué sirve el parámetro 'explode' en plt.pie()?", a: ["Para separar una rebanada del centro", "Para cambiar los colores", "Para borrar la gráfica", "Para animar la gráfica"], c: 0 },
+        { q: "¿Qué hace plt.legend() en Graficas.py?", a: ["Muestra el cuadro con los nombres de las series", "Guarda la imagen", "Define el título principal", "Cambia la escala del eje X"], c: 0 },
+        { q: "¿Qué parámetro controla la sombra en los diagramas de pastel?", a: ["shadow=True", "elevation=10", "dark_mode=True", "3d=True"], c: 0 },
+        { q: "¿Cuál es la función de 'plt.clf()' (aunque no sea explícita, se usa tras bambalinas)?", a: ["Limpiar la figura actual", "Cerrar el programa", "Cambiar la fuente", "Colorizar la línea"], c: 0 },
+
+        // --- Manejo de Errores (Logs) ---
+        { q: "¿Qué modo de apertura se usa en 'with open(...) as f' en Logs.py?", a: ["'a' (append)", "'w' (write)", "'r' (read)", "'x' (exclusive)"], c: 0 },
+        { q: "¿Qué información NO se guarda en el Log_errores_mettaton5.txt?", a: ["La dirección IP del usuario", "El nombre del módulo", "La descripción del error", "El timestamp"], c: 0 },
+        { q: "¿Por qué se usa un bloque try-except en la función Traduccion?", a: ["Para evitar que el programa se caiga si falla el servidor de Google", "Para que la traducción sea más rápida", "Es un requisito de Python 3", "Para ocultar errores al usuario"], c: 0 },
+        { q: "¿Qué valor de retorno entrega Traduccion() si el proceso falla?", a: ["El texto original (en inglés)", "None", "Un string vacío", "Error 404"], c: 0 },
+        { q: "¿Qué hace la función Logs.Salida()?", a: ["Muestra créditos y cierra el proceso con exit()", "Reinicia el bucle principal", "Borra el archivo Excel", "Apaga la música"], c: 0 },
+
+        // --- Lógica de Juego y UX ---
+        { q: "¿Qué objeto de Pygame se usa para sonidos cortos como 'victory.wav'?", a: ["pygame.mixer.Sound", "pygame.mixer.music", "pygame.display", "pygame.event"], c: 0 },
+        { q: "¿Cómo se detiene la música de fondo al acertar una pregunta?", a: ["No se detiene, se reproduce el efecto encima", "Se usa pygame.mixer.music.stop()", "Se cierra el programa", "Se baja el volumen a 0"], c: 0 },
+        { q: "¿Qué librería detecta la tecla 'Esc' para salir?", a: ["keyboard", "pygame", "os", "sys"], c: 0 },
+        { q: "¿Cuál es el número de categoría para 'Ciencia: Computación'?", a: ["18", "9", "15", "30"], c: 0 },
+        { q: "¿Qué función se encarga de limpiar el texto de caracteres HTML como '&quot;'?", a: ["Traduccion", "Enlace", "Bitacora", "Menu"], c: 0 },
+
+        // --- Programación General (Python) ---
+        { q: "¿Qué significa el parámetro 'dest=\"es\"' en el traductor?", a: ["Idioma destino: Español", "Destino: Escritorio", "Destruir el string", "Dificultad: Estándar"], c: 0 },
+        { q: "¿Qué tipo de bucle controla el flujo principal en Mettaton5.py?", a: ["Bucle while (infinito hasta break)", "Bucle for", "Recursividad", "No tiene bucle"], c: 0 },
+        { q: "¿Cómo se importan las funciones de un archivo local en el mismo directorio?", a: ["import NombreArchivo", "from . import NombreArchivo", "include NombreArchivo", "require NombreArchivo"], c: 0 },
+        { q: "¿Qué hace la función 'round(..., 2)' en Logs.py?", a: ["Redondea a dos decimales", "Multiplica por dos", "Corta el string", "Convierte a entero"], c: 0 },
+        { q: "¿Qué sucede si llamas a pygame.mixer.init() dos veces?", a: ["Generalmente nada, se reinicializa", "El programa explota", "Se duplica el volumen", "Se borra la memoria RAM"], c: 0 },
+
+        // --- Avanzadas de Código ---
+        { q: "¿Qué variable en Mettaton5.py almacena los parámetros de la partida actual?", a: ["mis_parametros", "lista_datos", "opciones_usuario", "config"], c: 0 },
+        { q: "¿En qué formato entrega datetime.now() la fecha por defecto?", a: ["Objeto datetime", "String", "Timestamp entero", "Float"], c: 0 },
+        { q: "¿Qué hace 'intro.play(-1)'?", a: ["Repite el sonido indefinidamente", "Toca el sonido al revés", "Silencia el sonido", "Toca el sonido una vez"], c: 0 },
+        { q: "¿Para qué sirve el archivo 'Instrucciones.txt'?", a: ["Para dar contexto al usuario antes de jugar", "Para guardar la configuración del sistema", "Para registrar errores de compilación", "Es un backup del código"], c: 0 },
+        { q: "¿Cómo maneja el sistema la elección 'Cualquier Categoría'?", a: ["Enviando 'None' a la función Enlace", "Enviando el ID 0", "Enviando un string vacío", "Eligiendo un número al azar entre 9 y 32"], c: 0 },
+
+        // --- Debugging y Mantenimiento ---
+        { q: "¿Qué indica un bloque 'if __name__ == \"__main__\":'?", a: ["Que el código solo se ejecuta si el script se corre directamente", "Que es una función privada", "Que es la versión principal del software", "Que el código es compatible con Windows"], c: 0 },
+        { q: "¿Qué herramienta usarías para ver los datos de Partidas.xlsx sin Excel?", a: ["Librería Pandas o un visor de CSV", "Bloc de notas", "Calculadora de Windows", "Un navegador web"], c: 0 },
+        { q: "¿Cuál es el principal cuello de botella (bottleneck) de este proyecto?", a: ["La latencia de la API de traducción y preguntas", "La velocidad de escritura en Excel", "La renderización de las gráficas", "El tamaño de los archivos .wav"], c: 0 },
+        { q: "¿Qué pasaría si la API OTDB cambia su dominio?", a: ["Se debe actualizar la URL en la función Enlace", "El programa se actualiza solo", "El Excel dejará de abrirse", "La música dejará de sonar"], c: 0 },
+        { q: "¿Qué tipo de excepción captura Traduccion() específicamente?", a: ["Cualquier Exception genérica", "Solo ConnectionError", "Solo Timeout", "Solo JSONDecodeError"], c: 0 },
+        { q: "¿Por qué se usa time.sleep(1) antes de mostrar el menú?", a: ["Para dar tiempo al usuario a leer y evitar solapamiento de audio", "Porque el procesador lo requiere", "Para limpiar la caché", "Es un error de código"], c: 0 },
+        { q: "¿Qué librería se encarga de la lógica de 'Estadísticas'?", a: ["Graficas.py (usando matplotlib)", "Sistemas.py", "Openpyxl", "Random"], c: 0 },
+        { q: "¿Cuál es el valor máximo de preguntas permitido por la API en un solo llamado?", a: ["50", "10", "100", "500"], c: 0 },
+        { q: "¿Qué archivo contiene el diseño de los colores de la consola?", a: ["No hay archivo, se usa el estilo por defecto de questionary", "Colors.py", "Config.json", "Mettaton5.py"], c: 0 },
+        { q: "¿Qué comando de consola usarías para instalar las dependencias?", a: ["pip install requests openpyxl pygame questionary googletrans==3.1.0a0", "npm install python", "python setup.py", "install-all"], c: 0 }
+    ];
+    
+    const bgMusic = new Audio('music.mp3'); 
+    bgMusic.loop = true;
+    bgMusic.volume = 0.5;
+
+    const startScreen = document.getElementById('start-screen');
+    const quizContent = document.getElementById('quiz-content');
+    const startBtn = document.getElementById('start-btn');
+
+    // El evento de clic en este botón es el que "autoriza" al navegador a usar audio
+    startBtn.onclick = () => {
+        startScreen.style.display = 'none'; // Oculta inicio
+        quizContent.style.display = 'block'; // Muestra el quiz
+        
+        bgMusic.play().catch(e => console.error("Error al reproducir:", e));
+        loadQuestion(); // Inicia la primera pregunta
+    };
+    
+    // Función para manejar el inicio seguro (por políticas de autoplay)
+    function playSafe() {
+        bgMusic.play().catch(error => {
+            console.log("El navegador bloqueó el autoplay. Esperando interacción...");
+        });
+    }
+
+    let currentQuestion = 0;
+    let score = 0;
+
+    const questionText = document.getElementById('question-text');
+    const optionsContainer = document.getElementById('options-container');
+    const progress = document.getElementById('progress');
+    const resultsDiv = document.getElementById('results');
+
+    function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+    function loadQuestion() {
+    if (currentQuestion === 0) {
+        playSafe(); // Inicia la música en la primera pregunta
+    }
+    const q = quizData[currentQuestion];
+    
+    // --- Lógica de Mezcla ---
+    const respuestaCorrectaTexto = q.a[q.c]; // Guardamos el texto de la respuesta correcta
+    shuffle(q.a); // Mezclamos el array de respuestas original
+    q.c = q.a.indexOf(respuestaCorrectaTexto); // Actualizamos el índice 'c' a la nueva posición
+    // ------------------------
+
+    questionText.innerText = `${currentQuestion + 1}. ${q.q}`;
+    optionsContainer.innerHTML = '';
+    
+    q.a.forEach((opt, index) => {
+        const btn = document.createElement('div');
+        btn.className = 'option';
+        btn.innerText = opt;
+        btn.onclick = () => checkAnswer(index);
+        optionsContainer.appendChild(btn);
+    });
+
+    progress.style.width = `${((currentQuestion) / quizData.length) * 100}%`;
+    }
+    
+    function checkAnswer(selected) {
+    const q = quizData[currentQuestion];
+    const correct = q.c;
+    
+    // NUEVO: Guardamos lo que eligió el usuario para mostrarlo al final
+    q.userChoice = selected; 
+
+    const options = document.querySelectorAll('.option');
+    options.forEach(opt => opt.style.pointerEvents = 'none');
+
+    if(selected === correct) {
+        options[selected].classList.add('correct');
+        score++;
+    } else {
+        options[selected].classList.add('incorrect');
+        options[correct].classList.add('correct');
+    }
+
+    setTimeout(() => {
+        currentQuestion++;
+        if(currentQuestion < quizData.length) {
+            loadQuestion();
+        } else {
+            showResults();
+        }
+    }, 1000);
+}
+
+        setTimeout(() => {
+            currentQuestion++;
+            if(currentQuestion < quizData.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }, 1000);
+    
+
+    function showResults() {
+        bgMusic.pause();          // Detiene la música
+        bgMusic.currentTime = 0;  // Reinicia el track al segundo 0
+    
+        quizContent.style.display = 'none';
+        resultsDiv.style.display = 'block';
+        quizContent.style.display = 'none';
+        resultsDiv.style.display = 'block';
+        document.getElementById('score-text').innerText = `Has obtenido ${score} de ${quizData.length} puntos.`;
+    
+    const reviewList = document.getElementById('review-list');
+    reviewList.innerHTML = '<h3>Revisión de intentos:</h3>';
+
+    quizData.forEach((q, index) => {
+        const isCorrect = q.userChoice === q.c;
+        const item = document.createElement('div');
+        item.className = 'review-item';
+        item.innerHTML = `
+            <span class="review-q">${index + 1}. ${q.q}</span>
+            <span class="review-a ${isCorrect ? 'txt-correct' : 'txt-incorrect'}">
+                <span class="txt-label">Tu respuesta:</span> ${q.a[q.userChoice] || 'No respondida'}
+            </span>
+            ${!isCorrect ? `<span class="review-a txt-correct"><span class="txt-label">Correcta:</span> ${q.a[q.c]}</span>` : ''}
+        `;
+        reviewList.appendChild(item);
+    });
+
+    const rank = (score / quizData.length) > 0.8 ? "Estas listo para la presentación." : (score / quizData.length > 0.5 ? "Estas casi listo para la presentación, falta mejorar algunos aspectos." : "Considera esudiar mas el sistema.");
+    document.getElementById('feedback').innerHTML = `<h3>Resultado: ${rank}</h3>`;
+}
+
+    function restartQuiz() {
+        currentQuestion = 0;
+        score = 0;
+        // Limpiamos las elecciones previas
+        quizData.forEach(q => delete q.userChoice);
+        
+        // Mezclamos de nuevo para que no sea igual
+        shuffle(quizData); 
+        
+        // Reset UI
+        resultsDiv.style.display = 'none';
+        quizContent.style.display = 'block';
+        bgMusic.currentTime = 0;
+        bgMusic.play();
+        loadQuestion();
+    }
+    
+    
+    shuffle(quizData);
+</script>
+
+</body>
+</html>
