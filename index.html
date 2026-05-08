@@ -370,7 +370,7 @@
         reviewList.appendChild(item);
     });
 
-    const rank = (score / quizData.length) > 0.8 ? "Estas listo para la presentación." : (score / quizData.length > 0.5 ? "Estas casi listo para la presentación, falta mejorar algunos aspectos." : "Considera esudiar mas el sistema.");
+    const rank = (score / quizData.length) > 0.8 ? "Estas listo para la presentación." : (score / quizData.length > 0.5 ? "Estas casi listo para la presentación, falta mejorar algunos aspectos." : "Considera estudiar mas el sistema.");
     document.getElementById('feedback').innerHTML = `<h3>Resultado: ${rank}</h3>`;
 }
 
